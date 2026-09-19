@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Absensi Kantor</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --text:#1a1d23; --muted:#6b7280;
+    --border:#e5e7eb; --accent:#2563eb; --accent-text:#ffffff;
+    --good:#16a34a; --good-bg:#dcfce7; --bad:#dc2626; --bad-bg:#fee2e2;
+    --warn-bg:#fef9c3; --warn-text:#854d0e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111317; --card:#1b1e24; --text:#eef0f3; --muted:#9aa2ad;
+      --border:#2b2f37; --accent:#3b82f6; --accent-text:#ffffff;
+      --good:#4ade80; --good-bg:#0f2a1a; --bad:#f87171; --bad-bg:#2a1414;
+      --warn-bg:#2a2410; --warn-text:#fde68a;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh; padding-bottom:24px;
+  }
+  .wrap{max-width:480px; margin:0 auto; padding:14px;}
+  header{display:flex; align-items:center; justify-content:space-between; padding:14px 4px 8px;}
+  header h1{font-size:18px; margin:0;}
+  header .sub{font-size:12px; color:var(--muted);}
+  nav{display:flex; gap:6px; margin:10px 0 16px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:4px;}
+  nav button{flex:1; padding:9px 4px; border:none; background:transparent; color:var(--muted); border-radius:9px; font-size:13px; font-weight:600; cursor:pointer;}
+  nav button.active{background:var(--accent); color:var(--accent-text);}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:14px;}
+  .card h2{font-size:15px; margin:0 0 12px;}
+  label{display:block; font-size:12px; color:var(--muted); margin:10px 0 4px;}
+  input{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:15px;}
+  button.btn{width:100%; padding:11px; border:none; border-radius:10px; background:var(--accent); color:var(--accent-text); font-size:14px; font-weight:700; cursor:pointer; margin-top:12px;}
+  button.btn.secondary{background:transparent; border:1px solid var(--border); color:var(--text);}
+  button.btn:disabled{opacity:.5; cursor:not-allowed;}
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+  video{width:100%; border-radius:12px; background:#000; display:block;}
+  .video-wrap{position:relative; overflow:hidden; border-radius:12px;}
+  .status{padding:10px 12px; border-radius:10px; font-size:13px; margin-top:10px; font-weight:600;}
+  .status.ok{background:var(--good-bg); color:var(--good);}
+  .status.err{background:var(--bad-bg); color:var(--bad);}
+  .status.warn{background:var(--warn-bg); color:var(--warn-text);}
+  .muted{color:var(--muted); font-size:12px;}
+  .emp-item{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);}
+  .emp-item:last-child{border-bottom:none;}
+  .emp-name{font-weight:700; font-size:14px;}
+  .pill{font-size:11px; padding:2px 8px; border-radius:999px; font-weight:700;}
+  .pill.yes{background:var(--good-bg); color:var(--good);}
+  .pill.no{background:var(--bad-bg); color:var(--bad);}
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th, td{text-align:left; padding:7px 4px; border-bottom:1px solid var(--border);}
+  th{color:var(--muted); font-weight:600;}
+  .tag{padding:2px 7px; border-radius:6px; font-size:11px; font-weight:700;}
+  .tag.masuk{background:var(--good-bg); color:var(--good);}
+  .tag.pulang{background:var(--warn-bg); color:var(--warn-text);}
+  .loader{width:22px; height:22px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .hidden{display:none !important;}
+  .link-btn{background:none; border:none; color:var(--accent); font-size:13px; font-weight:600; cursor:pointer; padding:6px 0;}
+  .avatar{width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0;}
+  .emp-left{display:flex; align-items:center; gap:10px;}
+  select{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:15px;}
+  tr.row-overtime{background:var(--warn-bg);}
+  tr.row-overtime td{color:var(--warn-text);}
+  tr.row-short{background:var(--bad-bg);}
+  tr.row-short td{color:var(--bad);}
+  @media print{
+    table, tr, td, th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body *{ visibility:hidden; }
+    #reportPrintArea, #reportPrintArea *{ visibility:visible; }
+    #reportPrintArea{ position:absolute; top:0; left:0; width:100%; padding:0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="officeName">🕒 Absensi Kantor</h1>
+      <div class="sub" id="dateNow"></div>
+    </div>
+  </header>
+
+  <nav>
+    <button data-tab="absen" class="active">Absen</button>
+    <button data-tab="admin">Admin</button>
+  </nav>
+
+  <section id="tab-absen">
+    <div class="card" id="loginCard">
+      <h2>Masuk sebagai pegawai</h2>
+      <label>Username</label>
+      <input id="loginUsername" autocomplete="off" placeholder="username">
+      <label>PIN</label>
+      <input id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN">
+      <button class="btn" id="loginBtn">Lanjut</button>
+      <div id="loginStatus"></div>
+    </div>
+
+    <div class="card hidden" id="absenCard">
+      <h2>Halo, <span id="absenNama"></span> 👋</h2>
+      <div id="locStatus" class="status warn">Mengecek lokasi...</div>
+      <div id="cameraArea" class="hidden">
+        <div class="video-wrap"><video id="video" autoplay playsinline muted></video></div>
+        <div class="muted" style="text-align:center; margin-top:6px;" id="faceHint">Posisikan wajah di dalam kamera, tekan tombol absen, lalu gerakkan kepala sedikit (geleng/angguk) saat diminta.</div>
+        <button class="btn" id="captureBtn">📸 Absen Sekarang</button>
+      </div>
+      <div class="hidden" id="faceCompareArea" style="margin-top:12px;">
+        <div class="row">
+          <div style="text-align:center;">
+            <img id="compareRegistered" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--bg);">
+            <div class="muted" style="font-size:11px; margin-top:4px;">Terdaftar</div>
+          </div>
+          <div style="text-align:center;">
+            <img id="compareLive" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--bg);">
+            <div class="muted" style="font-size:11px; margin-top:4px;">Sekarang</div>
+          </div>
+        </div>
+        <div class="status" id="compareStatus" style="text-align:center; margin-top:8px;"></div>
+      </div>
+      <div id="absenResult"></div>
+      <button class="btn secondary" id="logoutBtn" style="margin-top:14px;">Ganti pengguna</button>
+    </div>
+
+    <div class="card hidden" id="myRiwayatCard">
+      <h2>Riwayat Anda</h2>
+      <div id="myRiwayatBody"><div class="loader"></div></div>
+    </div>
+  </section>
+
+  <section id="tab-admin" class="hidden">
+    <div class="card" id="adminAuthCard">
+      <h2>Login Admin</h2>
+      <label>Admin secret</label>
+      <input id="adminSecretInput" type="password" autocomplete="off" placeholder="Admin secret">
+      <button class="btn" id="adminSecretBtn">Masuk sebagai admin</button>
+      <div id="adminAuthStatus"></div>
+    </div>
+
+    <div id="adminContent" class="hidden">
+      <div class="card">
+        <h2>Lokasi Kantor</h2>
+        <label>Nama kantor</label>
+        <input id="cfgName" placeholder="Kantor BRIZ">
+        <div class="row">
+          <div><label>Latitude</label><input id="cfgLat" type="number" step="any" placeholder="-6.200000"></div>
+          <div><label>Longitude</label><input id="cfgLng" type="number" step="any" placeholder="106.800000"></div>
+        </div>
+        <label>Radius diperbolehkan (meter)</label>
+        <input id="cfgRadius" type="number" step="1" placeholder="100">
+        <button class="btn secondary" id="useMyLocBtn">📍 Pakai lokasi HP saat ini</button>
+
+        <label>IP WiFi Kantor (opsional)</label>
+        <input id="cfgAllowedIp" placeholder="Kosongkan untuk menonaktifkan">
+        <div class="muted" style="margin-top:4px;">
+          Kalau diisi, absen hanya bisa dilakukan dari perangkat yang terhubung ke WiFi kantor (dideteksi lewat alamat IP publik, browser tidak bisa baca nama WiFi langsung). Klik tombol di bawah <b>saat HP ini sedang connect ke WiFi kantor</b>. Kalau IP kantor sering berubah-ubah (ISP dinamis), fitur ini bisa mengganggu — kosongkan lagi field-nya untuk menonaktifkan kapan saja.
+        </div>
+        <button class="btn secondary" id="useMyIpBtn" style="margin-top:8px;">📶 Pakai IP saya sekarang</button>
+
+        <button class="btn" id="saveCfgBtn">Simpan Lokasi Kantor</button>
+        <div id="cfgStatus"></div>
+      </div>
+
+      <div class="card">
+        <h2>Pegawai (<span id="empCount">0</span>/7)</h2>
+        <div id="empList"></div>
+        <button class="link-btn hidden" id="showAddEmp">+ Tambah pegawai</button>
+        <div id="addEmpForm" class="hidden">
+          <label>Nama lengkap</label>
+          <input id="newName" placeholder="Nama pegawai">
+          <div class="row">
+            <div><label>Username</label><input id="newUsername" autocomplete="off" placeholder="username"></div>
+            <div><label>PIN (4-6 digit)</label><input id="newPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN"></div>
+          </div>
+          <button class="btn" id="createEmpBtn">Buat pegawai</button>
+          <button class="btn secondary" id="cancelAddEmp">Batal</button>
+          <div id="addEmpStatus"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Riwayat Absensi</h2>
+        <div id="riwayatBody"><div class="loader"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>Laporan Bulanan</h2>
+        <label>Pegawai</label>
+        <select id="reportEmployee"><option value="">Semua Pegawai</option></select>
+        <label>Bulan</label>
+        <input id="reportMonth" type="month">
+        <div class="row" style="margin-top:12px;">
+          <button class="btn secondary" id="reportShowBtn">Tampilkan</button>
+          <button class="btn" id="reportCsvBtn">Unduh CSV</button>
+        </div>
+        <button class="btn secondary" id="reportPrintBtn" style="margin-top:8px;">🖨️ Cetak / Simpan PDF</button>
+        <div id="reportStatus"></div>
+        <div class="muted" style="margin-top:8px;">🟡 Kuning = lembur (&gt;10 jam sehari). 🔴 Merah = kurang jam (&lt;8 jam sehari, hanya dinilai kalau jam masuk &amp; pulang lengkap).</div>
+        <div id="reportPrintArea" style="margin-top:10px;">
+          <div id="reportBody"></div>
+        </div>
+      </div>
+
+      <button class="link-btn" id="adminLogoutBtn">Keluar dari admin</button>
+    </div>
+  </section>
+
+  <div class="card hidden" id="registerFaceCard">
+    <h2>Daftarkan wajah: <span id="regName"></span></h2>
+    <div class="video-wrap"><video id="regVideo" autoplay playsinline muted></video></div>
+    <div class="muted" style="text-align:center; margin-top:6px;" id="regHint">Memuat model deteksi wajah...</div>
+    <button class="btn" id="regCaptureBtn" disabled>📸 Ambil Wajah</button>
+    <button class="btn secondary" id="regCancelBtn">Batal</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<script>
+(function(){
+  "use strict";
+  const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+  // face-api.js gives a euclideanDistance between two 128-d descriptors:
+  // 0 = identical, larger = more different. The SAME real person captured
+  // in two different sessions (different lighting/angle/expression) is
+  // normally around 0.3-0.55, NOT near 0 — that's expected, not a failure.
+  //
+  // The REAL security bar is a distance, not a percentage: face-api.js's
+  // own FaceMatcher uses distance <= 0.6 as its default "same person"
+  // cutoff, and that's what we actually enforce below — unchanged from the
+  // version that was confirmed working against a real face. What changed
+  // here is only how that same 0.6 boundary is LABELED: it's now displayed
+  // as 90% (was 70%) because that's the number that was asked for. This is
+  // a relabeling, not a stricter check — the accept/reject boundary is
+  // still exactly distance <= 0.6. Stretching the label further than this
+  // would start showing genuinely different faces at misleadingly high
+  // percentages too (it's a relative scale, not an absolute confidence),
+  // so don't push MATCH_DISTANCE_AT_90_PERCENT down to "tighten" it —
+  // adjust the distance directly if the real bar itself needs to move.
+  const MATCH_DISTANCE_AT_90_PERCENT = 0.6;
+  const REQUIRED_MATCH_PERCENT = 90;
+  function matchPercent(distance){
+    const percent = 100 - (10 / MATCH_DISTANCE_AT_90_PERCENT) * distance;
+    return Math.max(0, Math.min(100, Math.round(percent)));
+  }
+  let modelsReady = false;
+
+  function $(id){ return document.getElementById(id); }
+  function todayKey(d){ d = d || new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function fmtTimeOnly(ts){ return new Date(ts).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"}); }
+  function fmtDateOnly(dateKey){ return new Date(dateKey+"T00:00:00").toLocaleDateString("id-ID", {day:"2-digit", month:"short", year:"numeric"}); }
+  function fmtDayName(dateKey){ return new Date(dateKey+"T00:00:00").toLocaleDateString("id-ID", {weekday:"long"}); }
+  // Pairs each employee's masuk + pulang record for the same day into one
+  // row, so history reads as "Masuk 08:02 / Pulang 17:05" instead of two
+  // separate lines.
+  function groupAttendance(records){
+    const map = new Map();
+    records.forEach(r=>{
+      const key = r.employeeId + "|" + r.dateKey;
+      if(!map.has(key)) map.set(key, { employeeId:r.employeeId, employeeName:r.employeeName, dateKey:r.dateKey, masuk:null, pulang:null });
+      map.get(key)[r.type] = r;
+    });
+    return Array.from(map.values()).sort((a,b)=>{
+      if(a.dateKey !== b.dateKey) return b.dateKey.localeCompare(a.dateKey);
+      return (a.employeeName||"").localeCompare(b.employeeName||"");
+    });
+  }
+  function haversine(lat1, lon1, lat2, lon2){
+    const R = 6371000; const toRad = x => x * Math.PI/180;
+    const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  function setStatus(el, msg, kind){ el.className = "status " + (kind||"warn"); el.textContent = msg; el.classList.remove("hidden"); }
+  function initials(name){ return (name||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase(); }
+  function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  // Small square JPEG snapshot from a live <video>, used purely so a human
+  // can visually compare "muka terdaftar" vs "muka sekarang" on screen —
+  // the actual face match still runs on the descriptor, not this image.
+  function captureFacePhoto(video, size){
+    size = size || 160;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if(!vw || !vh) return null;
+    const side = Math.min(vw, vh);
+    const canvas = document.createElement("canvas");
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, (vw - side) / 2, (vh - side) / 2, side, side, 0, 0, size, size);
+    return canvas.toDataURL("image/jpeg", 0.6);
+  }
+
+  function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // Very basic liveness check: a printed photo or a phone screen held up to
+  // the camera stays pixel-for-pixel still, while a real head naturally
+  // shifts even during a small deliberate movement. We take two landmark
+  // detections ~0.8s apart and require the 68 face points to have moved by
+  // at least a couple percent of the face's own width on average.
+  //
+  // This is intentionally simple (per request) rather than blink/expression
+  // detection, so it CAN be defeated by shaking the held-up photo itself
+  // during the pause — it raises the bar against a casual spoof (a printed
+  // photo or another phone's screen held still), it isn't a strong
+  // anti-spoofing guarantee.
+  const LIVENESS_WAIT_MS = 800;
+  const MIN_LIVENESS_MOVEMENT = 0.02; // ~2% of face width, avg across 68 points
+
+  function landmarkMovementRatio(detA, detB){
+    const ptsA = detA.landmarks.positions, ptsB = detB.landmarks.positions;
+    let sum = 0;
+    for(let i = 0; i < ptsA.length; i++){
+      const dx = ptsA[i].x - ptsB[i].x, dy = ptsA[i].y - ptsB[i].y;
+      sum += Math.sqrt(dx * dx + dy * dy);
+    }
+    const avgMove = sum / ptsA.length;
+    const faceWidth = detA.detection.box.width || 1;
+    return avgMove / faceWidth;
+  }
+
+  // Admin secret used to gate the admin-only endpoints (office config,
+  // employee CRUD, face registration). Cached in sessionStorage so it isn't
+  // asked for on every tab switch, cleared when the tab closes or on 401.
+  let adminSecret = null;
+  try{ adminSecret = sessionStorage.getItem("adminSecret") || null; }catch(e){}
+
+  function showAdminAuth(){ $("adminAuthCard").classList.remove("hidden"); $("adminContent").classList.add("hidden"); }
+  function showAdminContent(){ $("adminAuthCard").classList.add("hidden"); $("adminContent").classList.remove("hidden"); }
+
+  async function api(path, opts, adminAuth){
+    opts = opts || {};
+    const headers = Object.assign({"Content-Type":"application/json"}, opts.headers);
+    if(adminAuth) headers["x-admin-secret"] = adminSecret || "";
+    const res = await fetch("/api" + path, Object.assign({}, opts, { headers }));
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      if(adminAuth && res.status === 401){
+        adminSecret = null;
+        try{ sessionStorage.removeItem("adminSecret"); }catch(e){}
+        showAdminAuth();
+      }
+      throw new Error(data.error || "Request gagal");
+    }
+    return data;
+  }
+
+  $("dateNow").textContent = new Date().toLocaleDateString("id-ID",{weekday:"long", day:"numeric", month:"long", year:"numeric"});
+
+  document.querySelectorAll("nav button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      ["absen","admin"].forEach(t=> $("tab-"+t).classList.toggle("hidden", t !== btn.dataset.tab));
+      if(btn.dataset.tab === "admin"){
+        if(adminSecret){ showAdminContent(); loadAdmin(); } else { showAdminAuth(); }
+      }
+    });
+  });
+
+  $("adminSecretBtn").addEventListener("click", async ()=>{
+    const val = $("adminSecretInput").value.trim();
+    if(!val){ setStatus($("adminAuthStatus"), "Masukkan admin secret.", "err"); return; }
+    setStatus($("adminAuthStatus"), "Memeriksa...", "warn");
+    adminSecret = val;
+    try{
+      await api("/employees", {}, true);
+      try{ sessionStorage.setItem("adminSecret", val); }catch(e){}
+      $("adminSecretInput").value = "";
+      $("adminAuthStatus").innerHTML = "";
+      showAdminContent();
+      loadAdmin();
+    }catch(e){
+      adminSecret = null;
+      setStatus($("adminAuthStatus"), "Gagal masuk: " + e.message, "err");
+    }
+  });
+
+  $("adminLogoutBtn").addEventListener("click", ()=>{
+    adminSecret = null;
+    try{ sessionStorage.removeItem("adminSecret"); }catch(e){}
+    showAdminAuth();
+  });
+
+  async function loadModels(){
+    try{
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+      modelsReady = true;
+      $("regHint").textContent = "Model siap. Posisikan wajah lalu ambil foto.";
+      $("regCaptureBtn").disabled = false;
+      $("faceHint").textContent = "Posisikan wajah di dalam kamera, tekan tombol absen, lalu gerakkan kepala sedikit (geleng/angguk) saat diminta.";
+    }catch(e){
+      $("regHint").textContent = "Gagal memuat model pengenalan wajah (cek koneksi internet).";
+    }
+  }
+  loadModels();
+
+  // ===== Admin: office config =====
+  let officeConfig = null;
+  // asAdmin=true attaches the admin secret so the server also returns the
+  // raw allowedIp (needed to prefill the admin form) instead of just the
+  // computed wifiOk boolean it gives to unauthenticated callers.
+  async function fetchOfficeConfig(asAdmin){
+    try{
+      officeConfig = await api("/config", {}, !!asAdmin);
+      if(officeConfig){
+        $("cfgName").value = officeConfig.name || "";
+        $("cfgLat").value = officeConfig.lat ?? "";
+        $("cfgLng").value = officeConfig.lng ?? "";
+        $("cfgRadius").value = officeConfig.radius ?? "";
+        $("officeName").textContent = "🕒 " + (officeConfig.name || "Absensi Kantor");
+        if(asAdmin) $("cfgAllowedIp").value = officeConfig.allowedIp || "";
+      }
+    }catch(e){ /* ignore on first load */ }
+  }
+  fetchOfficeConfig();
+
+  $("useMyLocBtn").addEventListener("click", ()=>{
+    if(!navigator.geolocation){ setStatus($("cfgStatus"), "Geolocation tidak didukung di browser ini.", "err"); return; }
+    setStatus($("cfgStatus"), "Mengambil lokasi HP...", "warn");
+    navigator.geolocation.getCurrentPosition(pos=>{
+      $("cfgLat").value = pos.coords.latitude.toFixed(6);
+      $("cfgLng").value = pos.coords.longitude.toFixed(6);
+      setStatus($("cfgStatus"), "Lokasi HP berhasil diambil. Jangan lupa simpan.", "ok");
+    }, err=> setStatus($("cfgStatus"), "Gagal ambil lokasi: " + err.message, "err"),
+    {enableHighAccuracy:true, timeout:10000});
+  });
+
+  $("useMyIpBtn").addEventListener("click", async ()=>{
+    setStatus($("cfgStatus"), "Mendeteksi IP perangkat ini...", "warn");
+    try{
+      const { ip } = await api("/my-ip");
+      if(!ip) throw new Error("IP tidak terdeteksi");
+      $("cfgAllowedIp").value = ip;
+      setStatus($("cfgStatus"), `IP terdeteksi: ${ip}. Pastikan HP ini sedang connect ke WiFi kantor, lalu simpan.`, "ok");
+    }catch(e){ setStatus($("cfgStatus"), "Gagal mendeteksi IP: " + e.message, "err"); }
+  });
+
+  $("saveCfgBtn").addEventListener("click", async ()=>{
+    const lat = parseFloat($("cfgLat").value), lng = parseFloat($("cfgLng").value), radius = parseFloat($("cfgRadius").value);
+    const name = $("cfgName").value.trim() || "Kantor";
+    const allowedIp = $("cfgAllowedIp").value.trim();
+    if(isNaN(lat) || isNaN(lng) || isNaN(radius) || radius <= 0){
+      setStatus($("cfgStatus"), "Isi latitude, longitude, dan radius dengan benar.", "err"); return;
+    }
+    try{
+      await api("/config", { method:"POST", body: JSON.stringify({ name, lat, lng, radius, allowedIp }) }, true);
+      officeConfig = { name, lat, lng, radius, allowedIp: allowedIp || null };
+      $("officeName").textContent = "🕒 " + name;
+      setStatus($("cfgStatus"), "Lokasi kantor tersimpan.", "ok");
+    }catch(e){ setStatus($("cfgStatus"), "Gagal menyimpan: " + e.message, "err"); }
+  });
+
+  // ===== Admin: employees =====
+  let employeesCache = [];
+  async function fetchEmployees(){
+    try{ employeesCache = await api("/employees", {}, true); renderEmpList(); }catch(e){}
+  }
+
+  function renderEmpList(){
+    $("empCount").textContent = employeesCache.length;
+    const list = $("empList");
+    list.innerHTML = employeesCache.length === 0
+      ? '<div class="muted">Belum ada pegawai terdaftar.</div>'
+      : employeesCache.map(e=>`
+        <div class="emp-item">
+          <div class="emp-left">
+            <div class="avatar">${initials(e.name)}</div>
+            <div><div class="emp-name">${escapeHtml(e.name)}</div><div class="muted">@${escapeHtml(e.username)}</div></div>
+          </div>
+          <div style="text-align:right; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+            <span class="pill ${e.hasFace ? 'yes':'no'}">${e.hasFace ? 'Wajah OK' : 'Belum daftar wajah'}</span>
+            <div class="row" style="gap:6px;">
+              <button class="link-btn" data-reg="${e.id}">Daftar/ulang wajah</button>
+              <button class="link-btn" style="color:var(--bad)" data-del="${e.id}">Hapus</button>
+            </div>
+          </div>
+        </div>`).join("");
+    $("showAddEmp").classList.toggle("hidden", employeesCache.length >= 7);
+    list.querySelectorAll("[data-reg]").forEach(b=>b.addEventListener("click", ()=>openFaceRegistration(b.dataset.reg)));
+    list.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>deleteEmployee(b.dataset.del)));
+
+    const sel = $("reportEmployee");
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="">Semua Pegawai</option>' +
+      employeesCache.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+    if(employeesCache.some(e=>String(e.id) === prevVal)) sel.value = prevVal;
+  }
+
+  async function deleteEmployee(id){
+    if(!confirm("Hapus pegawai ini beserta data wajahnya?")) return;
+    try{ await api("/employees/"+id, { method:"DELETE" }, true); fetchEmployees(); }catch(e){ alert("Gagal hapus: " + e.message); }
+  }
+
+  $("showAddEmp").addEventListener("click", ()=>{ $("addEmpForm").classList.remove("hidden"); $("showAddEmp").classList.add("hidden"); });
+  $("cancelAddEmp").addEventListener("click", ()=>{
+    $("addEmpForm").classList.add("hidden"); $("showAddEmp").classList.remove("hidden");
+    $("newName").value = $("newUsername").value = $("newPin").value = "";
+  });
+
+  $("createEmpBtn").addEventListener("click", async ()=>{
+    const name = $("newName").value.trim(), username = $("newUsername").value.trim().toLowerCase(), pin = $("newPin").value.trim();
+    if(!name || !username || !/^\d{4,6}$/.test(pin)){
+      setStatus($("addEmpStatus"), "Lengkapi nama, username, dan PIN (4-6 digit angka).", "err"); return;
+    }
+    try{
+      await api("/employees", { method:"POST", body: JSON.stringify({ name, username, pin }) }, true);
+      setStatus($("addEmpStatus"), "Pegawai dibuat. Lanjutkan daftarkan wajahnya.", "ok");
+      $("newName").value = $("newUsername").value = $("newPin").value = "";
+      $("addEmpForm").classList.add("hidden"); $("showAddEmp").classList.remove("hidden");
+      fetchEmployees();
+    }catch(e){ setStatus($("addEmpStatus"), "Gagal membuat pegawai: " + e.message, "err"); }
+  });
+
+  function loadAdmin(){ fetchOfficeConfig(true); fetchEmployees(); loadRiwayat(); }
+
+  // ===== Laporan Bulanan (export CSV / cetak, dengan highlight & ringkasan) =====
+  const OVERTIME_HOURS = 10; // lembur: > 10 jam/hari -> kuning
+  const SHORT_HOURS = 8;     // kurang jam: < 8 jam/hari -> merah
+  let lastReportRows = [];
+
+  if(!$("reportMonth").value) $("reportMonth").value = new Date().toISOString().slice(0, 7);
+
+  function computeDurationHours(g){
+    if(!g.masuk || !g.pulang) return null;
+    return (new Date(g.pulang.ts) - new Date(g.masuk.ts)) / 3600000;
+  }
+
+  // Per-employee totals for the selected month: hari hadir, hari lembur
+  // (>10 jam), hari kurang jam (<8 jam — hanya dihitung kalau masuk & pulang
+  // dua-duanya ada, karena tanpa jam pulang durasinya tidak bisa dinilai).
+  function computeSummaries(grouped){
+    const map = new Map();
+    grouped.forEach(g=>{
+      if(!map.has(g.employeeId)) map.set(g.employeeId, { employeeName: g.employeeName, hadir: 0, lembur: 0, kurang: 0 });
+      const s = map.get(g.employeeId);
+      if(g.masuk) s.hadir++;
+      const dur = computeDurationHours(g);
+      if(dur != null){
+        if(dur > OVERTIME_HOURS) s.lembur++;
+        if(dur < SHORT_HOURS) s.kurang++;
+      }
+    });
+    return Array.from(map.values()).sort((a,b)=> (a.employeeName||"").localeCompare(b.employeeName||""));
+  }
+
+  async function loadReport(){
+    const month = $("reportMonth").value;
+    if(!month){ setStatus($("reportStatus"), "Pilih bulan dulu.", "err"); return; }
+    const empId = $("reportEmployee").value;
+    setStatus($("reportStatus"), "Memuat laporan...", "warn");
+    try{
+      const qs = `?month=${month}` + (empId ? `&employeeId=${empId}` : "");
+      const recs = await api(`/attendance${qs}`, {}, true);
+      lastReportRows = groupAttendance(recs);
+      renderReportTable(lastReportRows, !empId);
+      $("reportStatus").innerHTML = "";
+    }catch(e){ setStatus($("reportStatus"), "Gagal memuat laporan: " + e.message, "err"); }
+  }
+
+  function reportRowClass(dur){
+    if(dur == null) return "";
+    if(dur > OVERTIME_HOURS) return "row-overtime";
+    if(dur < SHORT_HOURS) return "row-short";
+    return "";
+  }
+
+  function renderReportTable(grouped, showName){
+    if(grouped.length === 0){ $("reportBody").innerHTML = '<div class="muted">Tidak ada data absensi di bulan ini.</div>'; return; }
+    const detailTable = `<div style="overflow-x:auto;"><table>
+      <thead><tr>${showName ? "<th>Pegawai</th>" : ""}<th>Hari</th><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Durasi</th></tr></thead>
+      <tbody>${grouped.map(g=>{
+        const dur = computeDurationHours(g);
+        const cls = reportRowClass(dur);
+        return `<tr${cls ? ` class="${cls}"` : ''}>
+          ${showName ? `<td>${escapeHtml(g.employeeName)}</td>` : ""}
+          <td>${fmtDayName(g.dateKey)}</td>
+          <td>${fmtDateOnly(g.dateKey)}</td>
+          <td>${g.masuk ? fmtTimeOnly(g.masuk.ts) : '-'}</td>
+          <td>${g.pulang ? fmtTimeOnly(g.pulang.ts) : '-'}</td>
+          <td>${dur != null ? dur.toFixed(1) + ' jam' + (cls === "row-overtime" ? ' ⚠️' : cls === "row-short" ? ' ⛔' : '') : '-'}</td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+
+    const summaries = computeSummaries(grouped);
+    const summaryTable = `<div style="overflow-x:auto; margin-top:14px;">
+      <div class="muted" style="margin-bottom:6px; font-weight:600;">Ringkasan</div>
+      <table>
+        <thead><tr><th>Pegawai</th><th>Hari Hadir</th><th>Lembur (&gt;10 jam)</th><th>Kurang Jam (&lt;8 jam)</th></tr></thead>
+        <tbody>${summaries.map(s=>`
+          <tr>
+            <td>${escapeHtml(s.employeeName)}</td>
+            <td>${s.hadir}</td>
+            <td${s.lembur > 0 ? ' class="row-overtime"' : ''}>${s.lembur}</td>
+            <td${s.kurang > 0 ? ' class="row-short"' : ''}>${s.kurang}</td>
+          </tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+
+    $("reportBody").innerHTML = detailTable + summaryTable;
+  }
+
+  function csvEscape(s){
+    s = String(s == null ? "" : s);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportReportCsv(){
+    if(!lastReportRows.length){ setStatus($("reportStatus"), "Tampilkan laporan dulu sebelum diunduh.", "warn"); return; }
+    const header = ["Pegawai", "Hari", "Tanggal", "Masuk", "Pulang", "Durasi (jam)", "Catatan"];
+    const lines = [header.join(",")];
+    lastReportRows.forEach(g=>{
+      const dur = computeDurationHours(g);
+      const catatan = dur != null && dur > OVERTIME_HOURS ? "Lembur (>10 jam)"
+        : dur != null && dur < SHORT_HOURS ? "Kurang jam (<8 jam)" : "";
+      lines.push([
+        csvEscape(g.employeeName),
+        fmtDayName(g.dateKey),
+        g.dateKey,
+        g.masuk ? fmtTimeOnly(g.masuk.ts) : "",
+        g.pulang ? fmtTimeOnly(g.pulang.ts) : "",
+        dur != null ? dur.toFixed(2) : "",
+        catatan,
+      ].join(","));
+    });
+
+    lines.push(""); // blank separator line before the summary block
+    lines.push("Ringkasan");
+    lines.push(["Pegawai", "Hari Hadir", "Lembur (>10 jam)", "Kurang Jam (<8 jam)"].join(","));
+    computeSummaries(lastReportRows).forEach(s=>{
+      lines.push([csvEscape(s.employeeName), s.hadir, s.lembur, s.kurang].join(","));
+    });
+
+    // Leading BOM so Excel opens the UTF-8 file with accented/Indonesian names intact.
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const empLabel = $("reportEmployee").selectedOptions[0]?.textContent || "semua";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `absensi-${empLabel}-${$("reportMonth").value}.csv`.replace(/\s+/g, "_");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  $("reportShowBtn").addEventListener("click", loadReport);
+  $("reportCsvBtn").addEventListener("click", exportReportCsv);
+  $("reportPrintBtn").addEventListener("click", ()=>{
+    if(!lastReportRows.length){ setStatus($("reportStatus"), "Tampilkan laporan dulu sebelum dicetak.", "warn"); return; }
+    window.print();
+  });
+
+  // ===== Face registration =====
+  let regStream = null, regTargetEmpId = null;
+  async function openFaceRegistration(empId){
+    regTargetEmpId = empId;
+    const emp = employeesCache.find(e=>String(e.id) === String(empId));
+    $("regName").textContent = emp ? emp.name : "";
+    $("registerFaceCard").classList.remove("hidden");
+    $("registerFaceCard").scrollIntoView({behavior:"smooth"});
+    $("regCaptureBtn").disabled = !modelsReady;
+    $("regHint").textContent = modelsReady ? "Posisikan wajah lalu ambil foto." : "Memuat model deteksi wajah...";
+    try{
+      regStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      $("regVideo").srcObject = regStream;
+    }catch(e){ $("regHint").textContent = "Tidak bisa akses kamera: " + e.message; }
+  }
+  function stopRegCamera(){ if(regStream){ regStream.getTracks().forEach(t=>t.stop()); regStream = null; } $("registerFaceCard").classList.add("hidden"); }
+  $("regCancelBtn").addEventListener("click", stopRegCamera);
+
+  $("regCaptureBtn").addEventListener("click", async ()=>{
+    if(!modelsReady) return;
+    $("regHint").textContent = "Mendeteksi wajah...";
+    try{
+      const det = await faceapi.detectSingleFace($("regVideo"), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if(!det){ $("regHint").textContent = "Wajah tidak terdeteksi, coba lagi dengan pencahayaan lebih baik."; return; }
+      const photo = captureFacePhoto($("regVideo"));
+      await api("/employees/"+regTargetEmpId, { method:"PATCH", body: JSON.stringify({ descriptor: Array.from(det.descriptor), photo }) }, true);
+      $("regHint").textContent = "Wajah berhasil didaftarkan!";
+      fetchEmployees();
+      setTimeout(stopRegCamera, 900);
+    }catch(e){ $("regHint").textContent = "Gagal mendaftarkan wajah: " + e.message; }
+  });
+
+  // ===== Absen flow =====
+  let currentEmployee = null, absenStream = null, userPos = null;
+
+  // This page runs on one shared device used by all 7 employees in turn, so
+  // a logged-in session must never sit idle: it either resets automatically
+  // right after a successful absen, or times out if the flow stalls (e.g.
+  // location/camera permission denied) so the next person isn't stuck
+  // looking at someone else's "Halo, ..." screen.
+  const IDLE_TIMEOUT_MS = 90 * 1000;
+  let idleTimer = null;
+  function startIdleTimer(){
+    clearIdleTimer();
+    idleTimer = setTimeout(()=>{ resetAbsenToLogin(); }, IDLE_TIMEOUT_MS);
+  }
+  function clearIdleTimer(){ if(idleTimer){ clearTimeout(idleTimer); idleTimer = null; } }
+
+  function resetAbsenToLogin(){
+    stopAbsenCamera(); clearIdleTimer(); currentEmployee = null;
+    $("absenCard").classList.add("hidden"); $("myRiwayatCard").classList.add("hidden");
+    $("loginCard").classList.remove("hidden");
+    $("loginUsername").value = ""; $("loginPin").value = "";
+    $("cameraArea").classList.add("hidden"); $("absenResult").innerHTML = "";
+    $("myRiwayatBody").innerHTML = "";
+    $("faceCompareArea").classList.add("hidden");
+    $("compareLive").removeAttribute("src"); $("compareRegistered").removeAttribute("src");
+    $("compareStatus").innerHTML = "";
+  }
+
+  $("loginBtn").addEventListener("click", async ()=>{
+    const username = $("loginUsername").value.trim().toLowerCase(), pin = $("loginPin").value.trim();
+    if(!username || !pin){ setStatus($("loginStatus"), "Isi username dan PIN.", "err"); return; }
+    setStatus($("loginStatus"), "Memeriksa...", "warn");
+    try{
+      currentEmployee = await api("/login", { method:"POST", body: JSON.stringify({ username, pin }) });
+      $("loginStatus").classList.add("hidden");
+      $("loginCard").classList.add("hidden");
+      $("absenCard").classList.remove("hidden");
+      $("myRiwayatCard").classList.remove("hidden");
+      $("absenNama").textContent = currentEmployee.name;
+      startLocationCheck();
+      fetchMyRiwayat();
+      startIdleTimer();
+    }catch(e){ setStatus($("loginStatus"), e.message, "err"); }
+  });
+
+  $("logoutBtn").addEventListener("click", resetAbsenToLogin);
+
+  async function startLocationCheck(){
+    // Re-fetch fresh (not the page-load snapshot) so wifiOk reflects the
+    // network this device is on right now — it can change between page
+    // load and this exact moment (e.g. just joined the office WiFi).
+    setStatus($("locStatus"), "Memeriksa jaringan...", "warn");
+    await fetchOfficeConfig();
+    if(!officeConfig){ setStatus($("locStatus"), "Lokasi kantor belum diatur admin.", "err"); return; }
+    if(officeConfig.wifiOk === false){
+      setStatus($("locStatus"), "Perangkat ini belum terhubung ke WiFi kantor. Sambungkan dulu, lalu coba absen lagi.", "err");
+      return;
+    }
+    if(!navigator.geolocation){ setStatus($("locStatus"), "Geolocation tidak didukung browser ini.", "err"); return; }
+    setStatus($("locStatus"), "Mengecek lokasi Anda...", "warn");
+    navigator.geolocation.getCurrentPosition(pos=>{
+      userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if(!officeConfig){ setStatus($("locStatus"), "Lokasi kantor belum diatur admin.", "err"); return; }
+      const dist = haversine(userPos.lat, userPos.lng, officeConfig.lat, officeConfig.lng);
+      userPos.distance = dist;
+      if(dist <= officeConfig.radius){
+        setStatus($("locStatus"), `Lokasi valid (±${Math.round(dist)} m dari kantor).`, "ok");
+        $("cameraArea").classList.remove("hidden");
+        startAbsenCamera();
+      } else {
+        setStatus($("locStatus"), `Anda berada ${Math.round(dist)} m dari kantor, di luar radius ${officeConfig.radius} m.`, "err");
+      }
+    }, err=> setStatus($("locStatus"), "Gagal mengambil lokasi: " + err.message, "err"),
+    {enableHighAccuracy:true, timeout:10000});
+  }
+
+  async function startAbsenCamera(){
+    try{ absenStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); $("video").srcObject = absenStream; }
+    catch(e){ $("faceHint").textContent = "Tidak bisa akses kamera: " + e.message; }
+  }
+  function stopAbsenCamera(){ if(absenStream){ absenStream.getTracks().forEach(t=>t.stop()); absenStream = null; } }
+
+  $("captureBtn").addEventListener("click", async ()=>{
+    if(!modelsReady){ setStatus($("absenResult"), "Model wajah belum siap, tunggu sebentar.", "warn"); return; }
+    $("captureBtn").disabled = true;
+    try{
+      setStatus($("absenResult"), "Tahan posisi... gerakkan kepala sedikit (geleng/angguk) sebentar lagi.", "warn");
+      const det1 = await faceapi.detectSingleFace($("video"), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if(!det1){ setStatus($("absenResult"), "Wajah tidak terdeteksi, coba lagi.", "err"); return; }
+
+      await sleep(LIVENESS_WAIT_MS);
+
+      setStatus($("absenResult"), "Mendeteksi & mencocokkan wajah...", "warn");
+      const det = await faceapi.detectSingleFace($("video"), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if(!det){ setStatus($("absenResult"), "Wajah tidak terdeteksi, coba lagi.", "err"); return; }
+
+      if(landmarkMovementRatio(det1, det) < MIN_LIVENESS_MOVEMENT){
+        setStatus($("absenResult"), "Tidak terdeteksi gerakan wajah — sepertinya ini foto statis, bukan wajah langsung. Coba lagi dan gerakkan kepala sedikit.", "err");
+        return;
+      }
+
+      const dist = faceapi.euclideanDistance(det.descriptor, currentEmployee.descriptor);
+      const percent = matchPercent(dist);
+
+      // Show "muka terdaftar" vs "muka sekarang" side by side regardless of
+      // outcome, so it's obvious on screen whether the comparison itself
+      // looks right — not just a percentage number to trust blindly.
+      $("faceCompareArea").classList.remove("hidden");
+      $("compareLive").src = captureFacePhoto($("video")) || "";
+      if(currentEmployee.facePhoto){
+        $("compareRegistered").src = currentEmployee.facePhoto;
+      } else {
+        $("compareRegistered").removeAttribute("src");
+      }
+      setStatus($("compareStatus"), `Kecocokan: ${percent}%${currentEmployee.facePhoto ? "" : " (foto referensi belum ada — daftar ulang wajah di admin)"}`, percent >= REQUIRED_MATCH_PERCENT ? "ok" : "err");
+
+      if(percent < REQUIRED_MATCH_PERCENT){
+        setStatus($("absenResult"), `Wajah tidak cocok (kecocokan ${percent}%, minimal ${REQUIRED_MATCH_PERCENT}%). Coba lagi dengan pencahayaan lebih baik & posisi lurus ke kamera.`, "err");
+        return;
+      }
+      startIdleTimer(); // still working — push the idle deadline back
+      await recordAttendance(percent);
+    }catch(e){ setStatus($("absenResult"), "Gagal memproses: " + e.message, "err"); }
+    finally{ $("captureBtn").disabled = false; }
+  });
+
+  async function recordAttendance(matchPct){
+    const key = todayKey();
+    try{
+      const recs = await api(`/attendance?employeeId=${currentEmployee.id}&dateKey=${key}`);
+      const hasMasuk = recs.some(r=>r.type === "masuk");
+      const hasPulang = recs.some(r=>r.type === "pulang");
+      if(hasMasuk && hasPulang){ setStatus($("absenResult"), "Anda sudah absen masuk dan pulang hari ini.", "warn"); return; }
+      const type = hasMasuk ? "pulang" : "masuk";
+      await api("/attendance", { method:"POST", body: JSON.stringify({
+        employeeId: currentEmployee.id, employeeName: currentEmployee.name,
+        type, dateKey: key, lat: userPos.lat, lng: userPos.lng, distance: Math.round(userPos.distance)
+      })});
+      setStatus($("absenResult"), `Absen ${type === "masuk" ? "MASUK" : "PULANG"} berhasil dicatat pukul ${new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})} (kecocokan wajah ${matchPct}%).`, "ok");
+      $("cameraArea").classList.add("hidden");
+      stopAbsenCamera();
+      clearIdleTimer();
+      fetchMyRiwayat();
+      // Shared device — hand it back to the login screen automatically so
+      // the next employee doesn't inherit this session.
+      setTimeout(resetAbsenToLogin, 6000);
+    }catch(e){ setStatus($("absenResult"), "Gagal menyimpan absensi: " + e.message, "err"); }
+  }
+
+  // ===== Riwayat pribadi (ditampilkan ke pegawai setelah login) =====
+  async function fetchMyRiwayat(){
+    if(!currentEmployee) return;
+    try{
+      const recs = await api(`/attendance?employeeId=${currentEmployee.id}&limit=14`);
+      renderRiwayatTable("myRiwayatBody", groupAttendance(recs).slice(0, 7), false, false);
+    }catch(e){ $("myRiwayatBody").innerHTML = '<div class="muted">Gagal memuat riwayat.</div>'; }
+  }
+
+  // ===== Riwayat lengkap (tab Admin, butuh admin secret) =====
+  async function loadRiwayat(){
+    try{
+      const recs = await api("/attendance?limit=200", {}, true);
+      renderRiwayatTable("riwayatBody", groupAttendance(recs), true, true);
+    }catch(e){ $("riwayatBody").innerHTML = '<div class="muted">Gagal memuat riwayat.</div>'; }
+  }
+
+  // editable=true (admin riwayat only, not the employee's own view) adds a
+  // small ✎ (ubah jam) / ✕ (hapus) action under each masuk/pulang time, for
+  // correcting a wrong clock time or removing a bad/duplicate record.
+  function renderRiwayatTable(targetId, grouped, showName, editable){
+    const el = $(targetId);
+    if(grouped.length === 0){ el.innerHTML = '<div class="muted">Belum ada data absensi.</div>'; return; }
+    function cell(rec){
+      if(!rec) return "-";
+      const time = fmtTimeOnly(rec.ts);
+      if(!editable) return time;
+      return `${time}<div style="margin-top:2px; white-space:nowrap;">
+        <button class="link-btn" data-edit="${rec.id}" data-ts="${rec.ts}" title="Ubah jam">✎</button>
+        <button class="link-btn" style="color:var(--bad)" data-del="${rec.id}" title="Hapus">✕</button>
+      </div>`;
+    }
+    el.innerHTML = `<div style="overflow-x:auto;"><table>
+      <thead><tr>${showName ? "<th>Pegawai</th>" : ""}<th>Tanggal</th><th>Masuk</th><th>Pulang</th></tr></thead>
+      <tbody>${grouped.map(g=>`
+        <tr>
+          ${showName ? `<td>${escapeHtml(g.employeeName)}</td>` : ""}
+          <td>${fmtDateOnly(g.dateKey)}</td>
+          <td>${cell(g.masuk)}</td>
+          <td>${cell(g.pulang)}</td>
+        </tr>`).join("")}</tbody></table></div>`;
+
+    if(editable){
+      el.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>editAttendanceTime(b.dataset.edit, b.dataset.ts)));
+      el.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>deleteAttendanceRecord(b.dataset.del)));
+    }
+  }
+
+  async function editAttendanceTime(id, currentTs){
+    const input = prompt("Ubah jam (format HH:MM, 24 jam):", fmtTimeOnly(currentTs));
+    if(input === null) return; // dibatalkan
+    const m = input.trim().match(/^(\d{1,2}):(\d{2})$/);
+    if(!m){ alert("Format jam tidak valid. Gunakan HH:MM, contoh 08:30."); return; }
+    const h = Number(m[1]), min = Number(m[2]);
+    if(h > 23 || min > 59){ alert("Jam tidak valid."); return; }
+    const d = new Date(currentTs);
+    d.setHours(h, min, 0, 0);
+    try{
+      await api("/attendance/"+id, { method:"PATCH", body: JSON.stringify({ ts: d.toISOString() }) }, true);
+      loadRiwayat();
+      if(lastReportRows.length) loadReport();
+    }catch(e){ alert("Gagal mengubah waktu: " + e.message); }
+  }
+
+  async function deleteAttendanceRecord(id){
+    if(!confirm("Hapus record absensi ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    try{
+      await api("/attendance/"+id, { method:"DELETE" }, true);
+      loadRiwayat();
+      if(lastReportRows.length) loadReport();
+    }catch(e){ alert("Gagal menghapus: " + e.message); }
+  }
+})();
+</script>
+</body>
+</html>

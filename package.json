@@ -1,0 +1,33 @@
+{
+  "name": "absensi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "drizzle-orm": "0.45.2",
+    "@neondatabase/serverless": "1.1.0",
+    "bcryptjs": "3.0.3"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.10",
+    "dotenv": "18.0.1",
+    "@neon/config": "1.7.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5"
+  }
+}
