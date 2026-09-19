@@ -157,12 +157,12 @@
         <input id="cfgRadius" type="number" step="1" placeholder="100">
         <button class="btn secondary" id="useMyLocBtn">📍 Pakai lokasi HP saat ini</button>
 
-        <label>IP WiFi Kantor (opsional)</label>
-        <input id="cfgAllowedIp" placeholder="Kosongkan untuk menonaktifkan">
+        <label>IP WiFi Kantor (opsional, boleh lebih dari satu dipisah koma)</label>
+        <input id="cfgAllowedIp" placeholder="contoh: 103.10.20.30, 118.99.1.2">
         <div class="muted" style="margin-top:4px;">
-          Kalau diisi, absen hanya bisa dilakukan dari perangkat yang terhubung ke WiFi kantor (dideteksi lewat alamat IP publik, browser tidak bisa baca nama WiFi langsung). Klik tombol di bawah <b>saat HP ini sedang connect ke WiFi kantor</b>. Kalau IP kantor sering berubah-ubah (ISP dinamis), fitur ini bisa mengganggu — kosongkan lagi field-nya untuk menonaktifkan kapan saja.
+          Kalau diisi, absen hanya bisa dilakukan dari perangkat yang terhubung ke salah satu IP ini (dideteksi lewat alamat IP publik, browser tidak bisa baca nama WiFi langsung). Kosongkan untuk menonaktifkan. Punya 2 jalur internet kantor (misal WiFi utama + cadangan)? Isi dua-duanya dipisah koma — tombol di bawah otomatis menambahkan, bukan menimpa. Klik <b>saat HP ini sedang connect ke WiFi kantor</b> yang mau didaftarkan. Kalau IP kantor sering berubah-ubah (ISP dinamis), fitur ini bisa mengganggu — kosongkan lagi field-nya untuk menonaktifkan kapan saja.
         </div>
-        <button class="btn secondary" id="useMyIpBtn" style="margin-top:8px;">📶 Pakai IP saya sekarang</button>
+        <button class="btn secondary" id="useMyIpBtn" style="margin-top:8px;">📶 Tambahkan IP saya sekarang</button>
 
         <button class="btn" id="saveCfgBtn">Simpan Lokasi Kantor</button>
         <div id="cfgStatus"></div>
@@ -206,6 +206,17 @@
         <div id="reportPrintArea" style="margin-top:10px;">
           <div id="reportBody"></div>
         </div>
+      </div>
+
+      <div class="card">
+        <h2>Ubah Admin Secret</h2>
+        <label>Admin secret baru (min. 8 karakter)</label>
+        <input id="newAdminSecret" type="password" autocomplete="off" placeholder="Admin secret baru">
+        <label>Ulangi admin secret baru</label>
+        <input id="newAdminSecretConfirm" type="password" autocomplete="off" placeholder="Ulangi admin secret baru">
+        <button class="btn" id="changeAdminSecretBtn">Ubah Admin Secret</button>
+        <div id="changeAdminSecretStatus"></div>
+        <div class="muted" style="margin-top:8px;">Berlaku untuk semua yang masuk ke tab Admin di HP manapun. Simpan baik-baik — tidak ada cara reset selain lewat database.</div>
       </div>
 
       <button class="link-btn" id="adminLogoutBtn">Keluar dari admin</button>
@@ -387,6 +398,23 @@
     showAdminAuth();
   });
 
+  $("changeAdminSecretBtn").addEventListener("click", async ()=>{
+    const val = $("newAdminSecret").value;
+    const confirmVal = $("newAdminSecretConfirm").value;
+    if(val.length < 8){ setStatus($("changeAdminSecretStatus"), "Minimal 8 karakter.", "err"); return; }
+    if(val !== confirmVal){ setStatus($("changeAdminSecretStatus"), "Konfirmasi tidak sama.", "err"); return; }
+    setStatus($("changeAdminSecretStatus"), "Menyimpan...", "warn");
+    try{
+      await api("/admin/secret", { method:"POST", body: JSON.stringify({ newSecret: val }) }, true);
+      // The secret just used to authorize this request is now stale —
+      // switch the cached one to the new value so the session keeps working.
+      adminSecret = val;
+      try{ sessionStorage.setItem("adminSecret", val); }catch(e){}
+      $("newAdminSecret").value = ""; $("newAdminSecretConfirm").value = "";
+      setStatus($("changeAdminSecretStatus"), "Admin secret berhasil diubah.", "ok");
+    }catch(e){ setStatus($("changeAdminSecretStatus"), "Gagal mengubah: " + e.message, "err"); }
+  });
+
   async function loadModels(){
     try{
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
@@ -438,8 +466,10 @@
     try{
       const { ip } = await api("/my-ip");
       if(!ip) throw new Error("IP tidak terdeteksi");
-      $("cfgAllowedIp").value = ip;
-      setStatus($("cfgStatus"), `IP terdeteksi: ${ip}. Pastikan HP ini sedang connect ke WiFi kantor, lalu simpan.`, "ok");
+      const existing = $("cfgAllowedIp").value.split(",").map(s=>s.trim()).filter(Boolean);
+      if(!existing.includes(ip)) existing.push(ip);
+      $("cfgAllowedIp").value = existing.join(", ");
+      setStatus($("cfgStatus"), `IP terdeteksi: ${ip}. Ditambahkan ke daftar (${existing.length} IP total). Jangan lupa simpan.`, "ok");
     }catch(e){ setStatus($("cfgStatus"), "Gagal mendeteksi IP: " + e.message, "err"); }
   });
 

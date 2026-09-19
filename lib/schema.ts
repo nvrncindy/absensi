@@ -40,6 +40,18 @@ export const employees = pgTable("employees", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Single-row table holding the admin panel's shared secret, hashed with
+// bcrypt (see lib/admin-auth.ts). If empty, checkAdminAuth() falls back to
+// the ADMIN_SECRET env var as a bootstrap value — once an admin changes it
+// from the admin panel, this table's hash takes over and env var is
+// ignored, so the secret can be rotated without redeploying/touching Vercel
+// env vars.
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  secretHash: varchar("secret_hash", { length: 100 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const attendance = pgTable("attendance", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),

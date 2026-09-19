@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return NextResponse.json({ error: "Format bulan tidak valid (YYYY-MM)" }, { status: 400 });
     }
-    const authError = checkAdminAuth(req);
+    const authError = await checkAdminAuth(req);
     if (authError) return authError;
 
     const conditions = [like(attendance.dateKey, `${month}-%`)];
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
   }
 
   // Full cross-employee history — admin only.
-  const authError = checkAdminAuth(req);
+  const authError = await checkAdminAuth(req);
   if (authError) return authError;
 
   const rows = await db.select().from(attendance).orderBy(desc(attendance.ts)).limit(limit);

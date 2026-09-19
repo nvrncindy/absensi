@@ -6,7 +6,7 @@ import { checkAdminAuth } from "@/lib/admin-auth";
 import { hashPin } from "@/lib/pin";
 
 export async function GET(req: Request) {
-  const authError = checkAdminAuth(req);
+  const authError = await checkAdminAuth(req);
   if (authError) return authError;
 
   const rows = await db.select().from(employees).orderBy(asc(employees.createdAt));
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const authError = checkAdminAuth(req);
+  const authError = await checkAdminAuth(req);
   if (authError) return authError;
 
   const { name, username, pin } = await req.json();

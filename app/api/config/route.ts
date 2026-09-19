@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { officeConfig } from "@/lib/schema";
 import { asc, eq } from "drizzle-orm";
-import { checkAdminAuth } from "@/lib/admin-auth";
+import { checkAdminAuth, isValidAdminSecret } from "@/lib/admin-auth";
 import { getClientIp, isIpAllowed } from "@/lib/client-ip";
 
 // office_config is meant to hold exactly one row. GET and POST both pick
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const row = rows[0];
   if (!row) return NextResponse.json(null);
 
-  const isAdmin = !!process.env.ADMIN_SECRET && req.headers.get("x-admin-secret") === process.env.ADMIN_SECRET;
+  const isAdmin = await isValidAdminSecret(req);
   const wifiOk = isIpAllowed(getClientIp(req), row.allowedIp);
   const { allowedIp, ...publicRow } = row;
 
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const authError = checkAdminAuth(req);
+  const authError = await checkAdminAuth(req);
   if (authError) return authError;
 
   const body = await req.json();
